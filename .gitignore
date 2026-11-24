@@ -1,0 +1,7 @@
+# secrets
+.env
+
+# runtime data (service volumes)
+data/
+
+.DS_Store

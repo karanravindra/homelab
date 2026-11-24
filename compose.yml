@@ -1,0 +1,6 @@
+include:
+  - services/traefik.yml
+  - services/adguardhome.yml
+  - services/beszel.yml
+  - services/homeassistant.yml
+  - services/samba.yml

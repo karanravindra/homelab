@@ -1,0 +1,13 @@
+services:
+  samba:
+    image: ghcr.io/servercontainers/samba:latest
+    container_name: samba
+    restart: unless-stopped
+    ports:
+      - "445:445"
+    environment:
+      ACCOUNT_${SMB_USER}: ${SMB_PASSWORD}
+      UID_${SMB_USER}: 1000
+      SAMBA_VOLUME_CONFIG_storage: "[storage]; path=/shares/storage; valid users = ${SMB_USER}; read only = no; browseable = yes"
+    volumes:
+      - ${STORAGE_PATH}:/shares/storage

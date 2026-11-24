@@ -1,0 +1,26 @@
+services:
+  # Copies seed config into the data dir on first run only (cp -n never overwrites)
+  homeassistant-init:
+    image: busybox:stable
+    container_name: homeassistant-init
+    restart: "no"
+    command: sh -c 'cp -n /seed/* /config/'
+    volumes:
+      - ../config/homeassistant:/seed:ro
+      - ../data/homeassistant:/config
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    restart: unless-stopped
+    network_mode: host # device discovery (mDNS, SSDP) needs the host network
+    depends_on:
+      homeassistant-init:
+        condition: service_completed_successfully
+    environment:
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ../data/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+    # Routed by Traefik via config/traefik/homeassistant.yml (host-network
+    # containers can't be reached through Docker labels).
