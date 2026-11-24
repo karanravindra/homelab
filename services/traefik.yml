@@ -6,7 +6,7 @@ services:
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     command:
-      - --log.level=INFO
+      - --log.level=DEBUG
       - --api.dashboard=true
       - --api.insecure=true # dashboard on :8081, LAN only; remove if exposed
       - --providers.docker=true

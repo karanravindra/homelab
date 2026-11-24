@@ -15,4 +15,7 @@ services:
       - traefik.http.routers.adguard.rule=Host(`adguard.${DOMAIN}`)
       - traefik.http.routers.adguard.entrypoints=websecure
       - traefik.http.routers.adguard.tls=true
+      - traefik.http.routers.adguard.tls.certresolver=letsencrypt
+      - traefik.http.routers.adguard.tls.domains[0].main=${DOMAIN}
+      - traefik.http.routers.adguard.tls.domains[0].sans=*.${DOMAIN}
       - traefik.http.services.adguard.loadbalancer.server.port=80
