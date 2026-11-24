@@ -1,0 +1,8 @@
+# Seed config: copied to data/homeassistant/ on first run only.
+default_config:
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - 172.16.0.0/12 # Docker bridge, where Traefik's requests come from
