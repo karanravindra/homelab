@@ -3,10 +3,17 @@ services:
     image: traefik:v3.6
     container_name: traefik
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     command:
       - --log.level=INFO
+      - --ping=true # enables /ping on the :8080 entrypoint for the healthcheck
       - --api.dashboard=true
       - --api.insecure=true # dashboard on :8081, LAN only; remove if exposed
       - --providers.docker=true
