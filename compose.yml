@@ -4,3 +4,4 @@ include:
   - services/beszel.yml
   - services/homeassistant.yml
   - services/samba.yml
+  - services/news.yml

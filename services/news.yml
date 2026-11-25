@@ -1,0 +1,82 @@
+# orbit-news (https://github.com/karanravindra/orbit, apps/news). Image is built and
+# pushed to GHCR by that repo's CI. Private package: `docker login ghcr.io` first.
+x-news: &news
+  image: ghcr.io/karanravindra/orbit-news:${NEWS_TAG:-latest}
+  restart: unless-stopped
+  environment:
+    DATABASE_URL: postgres://news:${NEWS_POSTGRES_PASSWORD}@news-db:5432/news
+    REDIS_URL: redis://:${NEWS_REDIS_PASSWORD}@news-redis:6379
+    # Ollama runs on the host
+    EMBED_BASE_URL: ${NEWS_EMBED_BASE_URL:-http://host.docker.internal:11434/v1}
+    EMBED_MODEL: ${NEWS_EMBED_MODEL:-embeddinggemma-2:270m}
+    EMBED_DIM: ${NEWS_EMBED_DIM:-768}
+    TOPIC_BASE_URL: ${NEWS_TOPIC_BASE_URL:-http://host.docker.internal:11434}
+    TOPIC_MODEL: ${NEWS_TOPIC_MODEL:-lfm3}
+    SUMMARIES: ${NEWS_SUMMARIES:-off}
+    SUMMARY_BASE_URL: ${NEWS_SUMMARY_BASE_URL:-http://host.docker.internal:11434}
+    SUMMARY_MODEL: ${NEWS_SUMMARY_MODEL:-lfm3}
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  depends_on:
+    news-db: { condition: service_healthy }
+    news-redis: { condition: service_healthy }
+
+services:
+  news-migrate:
+    <<: *news
+    container_name: news-migrate
+    restart: "no"
+    command: ["migrate"]
+
+  news-worker:
+    <<: *news
+    container_name: news-worker
+    command: ["worker"]
+    depends_on:
+      news-migrate: { condition: service_completed_successfully }
+      news-db: { condition: service_healthy }
+      news-redis: { condition: service_healthy }
+
+  news-web:
+    <<: *news
+    container_name: news-web
+    command: ["serve"]
+    depends_on:
+      news-migrate: { condition: service_completed_successfully }
+      news-db: { condition: service_healthy }
+      news-redis: { condition: service_healthy }
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.news.rule=Host(`news.${DOMAIN}`)
+      - traefik.http.routers.news.entrypoints=websecure
+      - traefik.http.routers.news.tls=true
+      - traefik.http.services.news.loadbalancer.server.port=3000
+
+  news-db:
+    image: pgvector/pgvector:pg17
+    container_name: news-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: news
+      POSTGRES_PASSWORD: ${NEWS_POSTGRES_PASSWORD}
+      POSTGRES_DB: news
+    volumes:
+      - ../data/news/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news"]
+      interval: 5s
+      retries: 30
+
+  news-redis:
+    image: redis:7
+    container_name: news-redis
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory-policy", "noeviction", "--appendonly", "yes", "--requirepass", "${NEWS_REDIS_PASSWORD}"]
+    environment:
+      REDIS_PASSWORD: ${NEWS_REDIS_PASSWORD}
+    volumes:
+      - ../data/news/redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      retries: 30

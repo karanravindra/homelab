@@ -10,6 +10,7 @@ Docker Compose setup for my homelab.
 | AdGuard Home | `https://adguard.<DOMAIN>` | DNS on :53, first-run setup at `:3000` |
 | Beszel (hub + agent) | `https://beszel.<DOMAIN>` | Server monitoring; agent needs `BESZEL_KEY` from the hub |
 | Home Assistant | `https://ha.<DOMAIN>` | Host networking; routed via `config/traefik/homeassistant.yml` |
+| News (orbit-news) | `https://news.<DOMAIN>` | web + worker + Postgres/pgvector + Redis; image from GHCR, needs Ollama on the host |
 | Samba | `smb://<host>/storage` | Shares `STORAGE_PATH` on :445 |
 
 ## Setup
@@ -27,7 +28,7 @@ Point `adguard.<DOMAIN>` (and any future subdomains) at the host's LAN IP.
 compose.yml            # just `include:`s each service
 services/traefik.yml
 services/adguardhome.yml
-services/...          # beszel, homeassistant, samba
+services/...          # beszel, homeassistant, samba, news
 config/traefik/        # Traefik file-provider routes (tracked)
 data/                  # service volumes (gitignored)
 ```
@@ -52,6 +53,20 @@ labels:
 
 The wildcard cert covers it automatically. Run a single service with
 `docker compose up -d myapp`.
+
+## News
+
+Pulls `ghcr.io/karanravindra/orbit-news` (private by default: `docker login ghcr.io` with a PAT
+that has `read:packages`, or make the package public). Set `NEWS_POSTGRES_PASSWORD` and
+`NEWS_REDIS_PASSWORD` in `.env`, run Ollama on the host with the models from `services/news.yml`, then:
+
+```sh
+docker compose pull news-web && docker compose up -d
+docker compose run --rm news-web outlets import   # once, loads outlet ratings
+```
+
+Roll back with `NEWS_TAG=sha-<old>` in `.env`. Back up with
+`docker compose exec news-db pg_dump -U news news > news.sql`.
 
 ## Secrets and data
 
