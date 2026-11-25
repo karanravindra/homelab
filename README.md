@@ -22,6 +22,17 @@ docker compose up -d
 
 Point `adguard.<DOMAIN>` (and any future subdomains) at the host's LAN IP.
 
+## Scripts
+
+Plain `sh`; run them from anywhere.
+
+| Script | What it does |
+| --- | --- |
+| `scripts/update.sh` | `git pull`, merge new `.env.example` keys into `.env`, stop if a required key is blank, `docker compose pull` + `up -d`, then wait for health. `SERVICE...` limits it; `--no-pull` / `--no-wait` skip steps. |
+| `scripts/status.sh` | Health table for every container. Exit `0` ok, `1` down or unhealthy, `2` still starting, `3` could not check. `-q` prints only problems (for cron); `-w SECS` waits for containers that are starting. |
+| `scripts/env-sync.sh` | Append keys that are new in `.env.example` to `.env`; never changes existing values. `-n` is a dry run. |
+| `scripts/lint-env.sh` | Fails if `.env.example` and the compose files disagree on variables. Needs no Docker; the header shows a pre-commit hook line. |
+
 ## Layout
 
 ```
@@ -30,6 +41,7 @@ services/traefik.yml
 services/adguardhome.yml
 services/...          # beszel, homeassistant, samba, news
 config/traefik/        # Traefik file-provider routes (tracked)
+scripts/               # update, status, env-sync, lint-env
 data/                  # service volumes (gitignored)
 ```
 
